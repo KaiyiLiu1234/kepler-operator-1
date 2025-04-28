@@ -1,18 +1,5 @@
-/*
-Copyright 2023.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// SPDX-FileCopyrightText: 2025 The Kepler Authors
+// SPDX-License-Identifier: Apache-2.0
 
 package powermonitor
 
@@ -42,17 +29,24 @@ const (
 	PowerMonitorServicePortName = "http"
 	DashboardNs                 = "openshift-config-managed"
 	PowerMonitorDSPort          = 28282
-	// SysFSMountPath                     = "/host/sys"
-	// ProcPath                    = "/host/proc"
-	SysFSMountPath      = "/host/sys"
-	ProcFSMountPath     = "/host/proc"
-	KeplerConfigMapPath = "/etc/kepler"
-	KeplerConfigFile    = "kepler-config.yaml"
+	NodeDashboardName           = "power-monitor-per-node"
+	InfoDashboardName           = "power-monitor-node-info"
+	SysFSMountPath              = "/host/sys"
+	ProcFSMountPath             = "/host/proc"
+	KeplerConfigMapPath         = "/etc/kepler"
+	KeplerConfigFile            = "kepler-config.yaml"
 )
 
-var linuxNodeSelector = k8s.StringMap{
-	"kubernetes.io/os": "linux",
-}
+var (
+	linuxNodeSelector = k8s.StringMap{
+		"kubernetes.io/os": "linux",
+	}
+	//go:embed assets/dashboards/power-monitoring-info.json
+	infoDashboardJson string
+
+	//go:embed assets/dashboards/power-monitoring-by-node.json
+	nodeDashboardJson string
+)
 
 func NewPowerMonitorDaemonSet(detail components.Detail, pmi *v1alpha1.PowerMonitorInternal) *appsv1.DaemonSet {
 	if detail == components.Metadata {
@@ -137,6 +131,14 @@ func NewPowerMonitorService(pmi *v1alpha1.PowerMonitorInternal) *corev1.Service 
 			}},
 		},
 	}
+}
+
+func NewPowerMonitorNodeDashboard(d components.Detail) *corev1.ConfigMap {
+	return openshiftDashboardConfigMap(d, NodeDashboardName, "power-monitoring-by-node.json", nodeDashboardJson)
+}
+
+func NewPowerMonitorInfoDashboard(d components.Detail) *corev1.ConfigMap {
+	return openshiftDashboardConfigMap(d, InfoDashboardName, "power-monitoring-info.json", infoDashboardJson)
 }
 
 func NewPowerMonitorConfigMap(d components.Detail, pmi *v1alpha1.PowerMonitorInternal) *corev1.ConfigMap {
@@ -340,6 +342,45 @@ func NewPowerMonitorServiceMonitor(pmi *v1alpha1.PowerMonitorInternal) *monv1.Se
 			Selector: metav1.LabelSelector{
 				MatchLabels: labels(pmi),
 			},
+		},
+	}
+}
+
+func openshiftDashboardConfigMap(d components.Detail, dashboardName, dashboardJSONName, dashboardJSONPath string) *corev1.ConfigMap {
+	objMeta := openshiftDashboardObjectMeta(dashboardName)
+
+	if d == components.Metadata {
+		return &corev1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: corev1.SchemeGroupVersion.String(),
+				Kind:       "ConfigMap",
+			},
+			ObjectMeta: objMeta,
+		}
+	}
+
+	return &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ConfigMap",
+		},
+		ObjectMeta: objMeta,
+		Data: map[string]string{
+			dashboardJSONName: dashboardJSONPath,
+		},
+	}
+}
+
+func openshiftDashboardObjectMeta(name string) metav1.ObjectMeta {
+	return metav1.ObjectMeta{
+		Name:      name,
+		Namespace: DashboardNs,
+		Labels: components.CommonLabels.Merge(k8s.StringMap{
+			"console.openshift.io/dashboard": "true",
+		}),
+		Annotations: k8s.StringMap{
+			"include.release.openshift.io/self-managed-high-availability": "true",
+			"include.release.openshift.io/single-node-developer":          "true",
 		},
 	}
 }
