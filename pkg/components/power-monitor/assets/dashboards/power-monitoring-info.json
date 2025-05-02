@@ -92,34 +92,12 @@
           "unit": "short"
         },
         {
-          "alias": "Instance",
-          "colors": [],
-          "decimals": 0,
-          "link": true,
-          "linkTargetBlank": false,
-          "pattern": "instance",
-          "thresholds": [],
-          "type": "string",
-          "unit": "short"
-        },
-        {
           "alias": "Go Version",
           "colors": [],
           "decimals": 0,
           "link": true,
           "linkTargetBlank": false,
           "pattern": "goversion",
-          "thresholds": [],
-          "type": "string",
-          "unit": "short"
-        },
-        {
-          "alias": "Prometheus",
-          "colors": [],
-          "decimals": 0,
-          "link": true,
-          "linkTargetBlank": false,
-          "pattern": "prometheus",
           "thresholds": [],
           "type": "string",
           "unit": "short"
@@ -145,17 +123,6 @@
           "thresholds": [],
           "type": "string",
           "unit": "short"
-        },
-        {
-          "alias": "Count",
-          "colors": [],
-          "decimals": 0,
-          "link": true,
-          "linkTargetBlank": false,
-          "pattern": "Value #A",
-          "thresholds": [],
-          "type": "hidden",
-          "unit": "short"
         }
       ],
       "targets": [
@@ -166,7 +133,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "group(kepler_build_info{container=~\"power-monitor\"}) by (arch, instance, goversion, prometheus, revision, version)",
+          "expr": "max(kepler_build_info{container=~\"power-monitor\"}) by (arch, goversion, revision, version)",
           "format": "table",
           "instant": true,
           "legendFormat": "",
@@ -263,39 +230,6 @@
           "unit": "short"
         },
         {
-          "alias": "Physical ID",
-          "colors": [],
-          "decimals": 0,
-          "link": true,
-          "linkTargetBlank": false,
-          "pattern": "physical_id",
-          "thresholds": [],
-          "type": "number",
-          "unit": "short"
-        },
-        {
-          "alias": "Pod Name",
-          "colors": [],
-          "decimals": 0,
-          "link": true,
-          "linkTargetBlank": false,
-          "pattern": "pod",
-          "thresholds": [],
-          "type": "string",
-          "unit": "short"
-        },
-        {
-          "alias": "Processor Type",
-          "colors": [],
-          "decimals": 0,
-          "link": true,
-          "linkTargetBlank": false,
-          "pattern": "processor",
-          "thresholds": [],
-          "type": "number",
-          "unit": "short"
-        },
-        {
           "alias": "Vendor ID",
           "colors": [],
           "decimals": 0,
@@ -325,7 +259,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "group(kepler_cpu_info{container=~\"power-monitor\"}) by (core_id, instance, model_name, physical_id, pod, processor, vendor_id)",
+          "expr": "group(kepler_cpu_info{container=~\"power-monitor\"}) by (core_id, instance, model_name, vendor_id)",
           "format": "table",
           "interval": "",
           "legendFormat": "",
