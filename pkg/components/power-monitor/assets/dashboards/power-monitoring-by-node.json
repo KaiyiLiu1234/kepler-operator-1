@@ -87,14 +87,14 @@
           "expr": "kepler_node_package_watts{container=~\"power-monitor\", instance=~\"$instance\"}",
           "hide": false,
           "interval": "",
-          "legendFormat": "(PKG) - {{instance}}",
+          "legendFormat": "(Package) - {{instance}}",
           "range": true,
           "refId": "A"
         }
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Node PKG Power Consumption (W)",
+      "title": "Node Package Power Consumption (W)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -182,14 +182,14 @@
           "expr": "kepler_node_core_watts{container=~\"power-monitor\", instance=~\"$instance\"}",
           "hide": false,
           "interval": "",
-          "legendFormat": "(CORE) - {{instance}}",
+          "legendFormat": "(Core) - {{instance}}",
           "range": true,
           "refId": "A"
         }
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Node CORE Power Consumption (W)",
+      "title": "Node Core Power Consumption (W)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -277,14 +277,14 @@
           "expr": "kepler_node_dram_watts{container=~\"power-monitor\", instance=~\"$instance\"}",
           "hide": false,
           "interval": "",
-          "legendFormat": "(DRAM) - {{instance}}",
+          "legendFormat": "(Dram) - {{instance}}",
           "range": true,
           "refId": "A"
         }
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Node DRAM Power Consumption (W)",
+      "title": "Node Dram Power Consumption (W)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -372,14 +372,14 @@
           "expr": "kepler_node_uncore_watts{container=~\"power-monitor\", instance=~\"$instance\"}",
           "hide": false,
           "interval": "",
-          "legendFormat": "(UNCORE) - {{instance}}",
+          "legendFormat": "(Uncore) - {{instance}}",
           "range": true,
           "refId": "A"
         }
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Node UNCORE Power Consumption (W)",
+      "title": "Node Uncore Power Consumption (W)",
       "tooltip": {
         "shared": true,
         "sort": 0,
