@@ -29,8 +29,8 @@ const (
 	PowerMonitorServicePortName = "http"
 	DashboardNs                 = "openshift-config-managed"
 	PowerMonitorDSPort          = 28282
-	NodeDashboardName           = "power-monitor-per-node"
-	InfoDashboardName           = "power-monitor-node-info"
+	NodeDashboardName           = "power-monitoring-by-node"
+	InfoDashboardName           = "power-monitoring-info"
 	SysFSMountPath              = "/host/sys"
 	ProcFSMountPath             = "/host/proc"
 	KeplerConfigMapPath         = "/etc/kepler"
@@ -134,11 +134,11 @@ func NewPowerMonitorService(pmi *v1alpha1.PowerMonitorInternal) *corev1.Service 
 }
 
 func NewPowerMonitorNodeDashboard(d components.Detail) *corev1.ConfigMap {
-	return openshiftDashboardConfigMap(d, NodeDashboardName, "power-monitoring-by-node.json", nodeDashboardJson)
+	return openshiftDashboardConfigMap(d, NodeDashboardName, fmt.Sprintf("%s.json", NodeDashboardName), nodeDashboardJson)
 }
 
 func NewPowerMonitorInfoDashboard(d components.Detail) *corev1.ConfigMap {
-	return openshiftDashboardConfigMap(d, InfoDashboardName, "power-monitoring-info.json", infoDashboardJson)
+	return openshiftDashboardConfigMap(d, InfoDashboardName, fmt.Sprintf("%s.json", InfoDashboardName), infoDashboardJson)
 }
 
 func NewPowerMonitorConfigMap(d components.Detail, pmi *v1alpha1.PowerMonitorInternal) *corev1.ConfigMap {
