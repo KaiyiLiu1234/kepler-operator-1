@@ -12,12 +12,13 @@ declare -r LOCAL_BIN="$PROJECT_ROOT/tmp/bin"
 declare -r OPERATOR="kepler-operator"
 declare -r OLM_CATALOG="kepler-operator-catalog"
 declare -r VERSION=${VERSION:-"0.0.0-e2e"}
-declare -r OPERATOR_DEPLOY_YAML="config/manager/manager.yaml"
+declare -r OPERATOR_DEPLOY_YAML="config/manager/base/manager.yaml"
 declare -r KEPLER_CR="config/samples/kepler.system_v1alpha1_kepler.yaml"
 declare -r OPERATOR_CSV="bundle/manifests/$OPERATOR.clusterserviceversion.yaml"
 declare -r OPERATOR_DEPLOY_NAME="kepler-operator-controller"
 declare -r OPERATOR_RELEASED_BUNDLE="quay.io/sustainable_computing_io/$OPERATOR-bundle"
 declare -r TEST_IMAGES_YAML="tests/images.yaml"
+declare ENABLE_VM_TEST
 
 declare IMG_BASE="${IMG_BASE:-localhost:5001/$OPERATOR}"
 # NOTE: this vars are initialized in init_operator_img
@@ -27,7 +28,6 @@ declare BUNDLE_IMG=""
 declare CI_MODE=false
 declare NO_DEPLOY=false
 declare NO_BUILDS=false
-declare NO_UPGRADE=false
 declare SHOW_USAGE=false
 declare LOGS_DIR="tmp/e2e"
 declare OPERATORS_NS="operators"
@@ -95,7 +95,7 @@ gather_olm() {
 	done
 }
 
-run_bundle_upgrade() {
+cmd_upgrade() {
 	header "Running Bundle Upgrade"
 	kind_load_images
 	delete_olm_subscription || true
@@ -106,6 +106,7 @@ run_bundle_upgrade() {
 
 	local replaced_version=""
 	replaced_version=$(yq ".spec.replaces| sub(\"$OPERATOR.v\"; \"\")" "$OPERATOR_CSV")
+	replaced_version=$(echo "$replaced_version" | tr -d '"')
 
 	local released_bundle="$OPERATOR_RELEASED_BUNDLE:$replaced_version"
 
@@ -206,6 +207,7 @@ run_e2e() {
 
 	log_events "$OPERATORS_NS" &
 	log_events "kepler-operator" &
+	log_events "power-monitor" &
 	watch_operator_errors "$error_log" &
 
 	local ret=0
@@ -250,16 +252,17 @@ parse_args() {
 			NO_DEPLOY=true
 			shift
 			;;
-		--no-upgrade)
-			NO_UPGRADE=true
-			shift
-			;;
 		--no-builds)
 			NO_BUILDS=true
 			shift
 			;;
 		--ci)
 			CI_MODE=true
+			shift
+			;;
+		--enable-vm-test)
+			ENABLE_VM_TEST="true"
+			export ENABLE_VM_TEST # export vm test results
 			shift
 			;;
 		--image-base)
@@ -274,7 +277,9 @@ parse_args() {
 			shift
 			ARGS_PARSED+=1
 			;;
-		*) return 1 ;; # show usage on everything else
+		*)
+			return 1
+			;; # show usage on everything else
 		esac
 	done
 
@@ -287,40 +292,41 @@ init_operator_img() {
 	declare -r OPERATOR_IMG BUNDLE_IMG
 }
 
-print_usage() {
+cmd_help() {
 	local scr
 	scr="$(basename "$0")"
 
 	read -r -d '' help <<-EOF_HELP || true
 		🔆 Usage:
-		  $scr
-		  $scr  [OPTIONS] -- [GO TEST ARGS]
-		  $scr  -h|--help
+		  $scr <command> [OPTIONS] -- [GO TEST ARGS]
+		  $scr -h|--help
 
-		💡 Examples :
-		  # run all tests
-		  ❯   $scr
+		📋 Commands:
+		  e2e             run end-to-end tests
+		  upgrade         run bundle upgrade tests
 
-		  # run only invalid test
-		  ❯   $scr -- -run TestInvalid
+		💡 Examples:
+		  # run e2e tests
+		  ❯   $scr e2e
 
-		  # Do not run upgrade scenario
-		  ❯   $scr --no-upgrade
+		  # run upgrade tests
+		  ❯   $scr upgrade
 
-		  # Do not redeploy operator and run only invalid test
-		  ❯   $scr --no-deploy  -- -run TestInvalid
+		  # run only invalid test with e2e
+		  ❯   $scr e2e -- -run TestInvalid
 
-		⚙️ Options :
+		  # do not redeploy operator and run only invalid test
+		  ❯   $scr e2e --no-deploy -- -run TestInvalid
+
+		⚙️ Options:
 		  -h|--help        show this help
 		  --ci             run in CI mode
+		  --enable-vm-test run tests in vm environment
 		  --no-deploy      do not build and deploy Operator; useful for rerunning tests
 		  --no-builds      skip building operator images; useful when operator image is already
 		                   built and pushed
-		  --no-upgrade     run the operator bundle instead of performing an upgrade test
 		  --ns NAMESPACE   namespace to deploy operators (default: $OPERATORS_NS)
 		                   E.g. running against openshift use --ns openshift-operators
-
-
 	EOF_HELP
 
 	echo -e "$help"
@@ -482,7 +488,6 @@ print_config() {
 		  CI Mode:         $CI_MODE
 		  Skip Builds:     $NO_BUILDS
 		  Skip Deploy:     $NO_DEPLOY
-		  Skip Upgrade:    $NO_UPGRADE
 		  Operator namespace: $OPERATORS_NS
 		  Logs directory: $LOGS_DIR
 
@@ -490,7 +495,7 @@ print_config() {
 	line 50
 }
 
-deploy_and_run_e2e() {
+cmd_e2e() {
 	if $NO_DEPLOY; then
 		restart_operator || die "restarting operator failed 🤕"
 	else
@@ -507,26 +512,33 @@ deploy_and_run_e2e() {
 
 main() {
 	export PATH="$LOCAL_BIN:$PATH"
+
+	local fn=${1:-''}
+	shift
+
 	parse_args "$@" || die "parse args failed"
 	# eat up all the parsed args so that the rest can be passed to go test
 	shift $ARGS_PARSED
-
 	$SHOW_USAGE && {
-		print_usage
+		cmd_help
 		exit 0
 	}
 
 	cd "$PROJECT_ROOT"
 
+	local cmd_fn="cmd_$fn"
+	if ! is_fn "$cmd_fn"; then
+		err "unknown command: $fn"
+		cmd_help
+		return 1
+	fi
+
 	init_operator_img
 	init_logs_dir
 	print_config
 
-	if $NO_UPGRADE; then
-		deploy_and_run_e2e "$@" || return 1
-	else
-		run_bundle_upgrade || return 1
-	fi
+	$cmd_fn "$@" || return 1
+
 	return 0
 }
 

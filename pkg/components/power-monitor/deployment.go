@@ -29,12 +29,13 @@ const (
 	PowerMonitorServicePortName = "http"
 	DashboardNs                 = "openshift-config-managed"
 	PowerMonitorDSPort          = 28282
-	NodeDashboardName           = "power-monitor-per-node"
-	InfoDashboardName           = "power-monitor-node-info"
+	NodeDashboardName           = "power-monitoring-by-node"
+	InfoDashboardName           = "power-monitoring-info"
 	SysFSMountPath              = "/host/sys"
 	ProcFSMountPath             = "/host/proc"
 	KeplerConfigMapPath         = "/etc/kepler"
 	KeplerConfigFile            = "kepler-config.yaml"
+	EnableVMTestKey             = "powermonitor.sustainable.computing.io/test-env-vm"
 )
 
 var (
@@ -134,11 +135,11 @@ func NewPowerMonitorService(pmi *v1alpha1.PowerMonitorInternal) *corev1.Service 
 }
 
 func NewPowerMonitorNodeDashboard(d components.Detail) *corev1.ConfigMap {
-	return openshiftDashboardConfigMap(d, NodeDashboardName, "power-monitoring-by-node.json", nodeDashboardJson)
+	return openshiftDashboardConfigMap(d, NodeDashboardName, fmt.Sprintf("%s.json", NodeDashboardName), nodeDashboardJson)
 }
 
 func NewPowerMonitorInfoDashboard(d components.Detail) *corev1.ConfigMap {
-	return openshiftDashboardConfigMap(d, InfoDashboardName, "power-monitoring-info.json", infoDashboardJson)
+	return openshiftDashboardConfigMap(d, InfoDashboardName, fmt.Sprintf("%s.json", InfoDashboardName), infoDashboardJson)
 }
 
 func NewPowerMonitorConfigMap(d components.Detail, pmi *v1alpha1.PowerMonitorInternal) *corev1.ConfigMap {
@@ -156,7 +157,7 @@ func NewPowerMonitorConfigMap(d components.Detail, pmi *v1alpha1.PowerMonitorInt
 		}
 	}
 
-	config, _ := keplerConfig(&pmi.Spec.Kepler.Config)
+	config, _ := keplerConfig(pmi)
 
 	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
@@ -437,10 +438,13 @@ func newPowerMonitorContainer(pmi *v1alpha1.PowerMonitorInternal) corev1.Contain
 	}
 }
 
-func keplerConfig(keplerConfig *v1alpha1.PowerMonitorInternalKeplerConfigSpec) (string, error) {
+func keplerConfig(pmi *v1alpha1.PowerMonitorInternal) (string, error) {
 	cf := config.DefaultConfig()
-
-	cf.Log.Level = keplerConfig.LogLevel
+	val, ok := pmi.Annotations[EnableVMTestKey]
+	if ok {
+		cf.Dev.FakeCpuMeter.Enabled = val == "true"
+	}
+	cf.Log.Level = pmi.Spec.Kepler.Config.LogLevel
 	cf.Host.SysFS = SysFSMountPath
 	cf.Host.ProcFS = ProcFSMountPath
 
