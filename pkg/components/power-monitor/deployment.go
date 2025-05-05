@@ -16,6 +16,7 @@ import (
 	"github.com/sustainable.computing.io/kepler-operator/pkg/utils/k8s"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -331,6 +332,51 @@ func NewPowerMonitorServiceMonitor(pmi *v1alpha1.PowerMonitorInternal) *monv1.Se
 	}
 }
 
+func NewPowerMonitorNetworkPolicy(d components.Detail, pmi *v1alpha1.PowerMonitorInternal) *networkingv1.NetworkPolicy {
+	if d == components.Metadata {
+		return &networkingv1.NetworkPolicy{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: networkingv1.SchemeGroupVersion.String(),
+				Kind:       "NetworkPolicy",
+			},
+
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      pmi.Name,
+				Namespace: pmi.Namespace(),
+				Labels:    labels(pmi),
+			},
+		}
+	}
+	protocol := corev1.ProtocolTCP
+	return &networkingv1.NetworkPolicy{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: networkingv1.SchemeGroupVersion.String(),
+			Kind:       "NetworkPolicy",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      pmi.Name,
+			Namespace: pmi.Namespace(),
+			Labels:    labels(pmi),
+		},
+		Spec: networkingv1.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{
+				MatchLabels: podSelector(pmi),
+			},
+			Ingress: []networkingv1.NetworkPolicyIngressRule{
+				{
+					From: buildNamespaceSelectors(pmi.Spec.Kepler.Config.AllowedNamespaces),
+					Ports: []networkingv1.NetworkPolicyPort{
+						{
+							Port:     &intstr.IntOrString{Type: intstr.Int, IntVal: int32(PowerMonitorDSPort)},
+							Protocol: &protocol,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func labels(pmi *v1alpha1.PowerMonitorInternal) k8s.StringMap {
 	return components.CommonLabels.Merge(k8s.StringMap{
 		"app.kubernetes.io/component":                "exporter",
@@ -396,4 +442,18 @@ func keplerConfig(keplerConfig *v1alpha1.PowerMonitorInternalKeplerConfigSpec) (
 	}
 
 	return cf.String(), nil
+}
+
+func buildNamespaceSelectors(selectedNamespaces []string) []networkingv1.NetworkPolicyPeer {
+	var peers []networkingv1.NetworkPolicyPeer
+	for _, ns := range selectedNamespaces {
+		peers = append(peers, networkingv1.NetworkPolicyPeer{
+			NamespaceSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"kubernetes.io/metadata.name": ns,
+				},
+			},
+		})
+	}
+	return peers
 }

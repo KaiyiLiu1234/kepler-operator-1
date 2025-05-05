@@ -80,6 +80,13 @@ spec:
                 properties:
                   config:
                     properties:
+                      allowedNamespaces:
+                        default:
+                        - openshift-user-workload-monitoring
+                        - monitoring
+                        items:
+                          type: string
+                        type: array
                       logLevel:
                         default: info
                         type: string

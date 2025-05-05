@@ -27,6 +27,7 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	securityv1 "github.com/openshift/api/security/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 
 	keplersystemv1alpha1 "github.com/sustainable.computing.io/kepler-operator/api/v1alpha1"
 	"github.com/sustainable.computing.io/kepler-operator/internal/controller"
@@ -46,6 +47,7 @@ func init() {
 	utilruntime.Must(keplersystemv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(securityv1.AddToScheme(scheme))
 	utilruntime.Must(monv1.AddToScheme(scheme))
+	utilruntime.Must(networkingv1.AddToScheme(scheme))
 
 	//+kubebuilder:scaffold:scheme
 }

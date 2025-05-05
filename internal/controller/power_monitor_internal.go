@@ -17,6 +17,7 @@ import (
 	"github.com/sustainable.computing.io/kepler-operator/pkg/utils/k8s"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,6 +48,7 @@ type PowerMonitorInternalReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=list;watch
 //+kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,verbs=list;watch;create;update;patch;delete;use
 //+kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors;prometheusrules,verbs=list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=list;watch;create;update;patch;delete
 
 // RBAC required by Kepler exporter
 //+kubebuilder:rbac:groups=core,resources=nodes/metrics;nodes/proxy;nodes/stats,verbs=get;list;watch
@@ -67,7 +69,8 @@ func (r *PowerMonitorInternalReconciler) SetupWithManager(mgr ctrl.Manager) erro
 		Owns(&corev1.Service{}, genChanged).
 		Owns(&appsv1.DaemonSet{}, builder.WithPredicates(predicate.ResourceVersionChangedPredicate{})).
 		Owns(&rbacv1.ClusterRoleBinding{}, genChanged).
-		Owns(&rbacv1.ClusterRole{}, genChanged)
+		Owns(&rbacv1.ClusterRole{}, genChanged).
+		Owns(&networkingv1.NetworkPolicy{}, genChanged)
 
 	if Config.Cluster == k8s.OpenShift {
 		c = c.Owns(&secv1.SecurityContextConstraints{}, genChanged)
@@ -181,6 +184,7 @@ func powerMonitorExporters(pmi *v1alpha1.PowerMonitorInternal, cluster k8s.Clust
 		powermonitor.NewPowerMonitorServiceAccount(pmi),
 		powermonitor.NewPowerMonitorService(pmi),
 		powermonitor.NewPowerMonitorServiceMonitor(pmi),
+		powermonitor.NewPowerMonitorNetworkPolicy(components.Full, pmi),
 		// powermonitor.NewPowerMonitorPrometheusRule(kx), do not include until metrics are made available
 	)...)
 

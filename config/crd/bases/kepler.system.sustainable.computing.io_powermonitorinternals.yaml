@@ -74,6 +74,11 @@ spec:
                 properties:
                   config:
                     properties:
+                      allowedNamespaces:
+                        default: []
+                        items:
+                          type: string
+                        type: array
                       logLevel:
                         default: info
                         type: string

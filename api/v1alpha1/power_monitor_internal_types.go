@@ -30,6 +30,9 @@ type PowerMonitorInternalKeplerDeploymentSpec struct {
 type PowerMonitorInternalKeplerConfigSpec struct {
 	// +kubebuilder:default="info"
 	LogLevel string `json:"logLevel,omitempty"`
+
+	// +kubebuilder:default={}
+	AllowedNamespaces []string `json:"allowedNamespaces,omitempty"`
 }
 
 type PowerMonitorInternalKeplerSpec struct {

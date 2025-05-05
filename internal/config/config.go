@@ -24,9 +24,17 @@ type (
 		ProcFS string `yaml:"procfs"`
 	}
 
+	Dev struct {
+		FakeCpuMeter struct {
+			Enabled bool     `yaml:"enabled"`
+			Zones   []string `yaml:"zones"`
+		} `yaml:"fake-cpu-meter"`
+	}
+
 	Config struct {
 		Log  Log  `yaml:"log"`
 		Host Host `yaml:"host"`
+		Dev  Dev  `yaml:"dev"`
 	}
 )
 
@@ -48,6 +56,15 @@ func DefaultConfig() *Config {
 		Host: Host{
 			SysFS:  "/sys",
 			ProcFS: "/proc",
+		},
+		Dev: Dev{
+			FakeCpuMeter: struct {
+				Enabled bool     `yaml:"enabled"`
+				Zones   []string `yaml:"zones"`
+			}{
+				Enabled: true,
+				Zones:   []string{},
+			},
 		},
 	}
 

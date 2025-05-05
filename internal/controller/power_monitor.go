@@ -265,7 +265,8 @@ func newPowerMonitorInternal(d components.Detail, pm *v1alpha1.PowerMonitor) *v1
 					Namespace: PowerMonitorDeploymentNS,
 				},
 				Config: v1alpha1.PowerMonitorInternalKeplerConfigSpec{
-					LogLevel: pm.Spec.Kepler.Config.LogLevel,
+					LogLevel:          pm.Spec.Kepler.Config.LogLevel,
+					AllowedNamespaces: pm.Spec.Kepler.Config.AllowedNamespaces,
 				},
 			},
 			OpenShift: v1alpha1.PowerMonitorInternalOpenShiftSpec{

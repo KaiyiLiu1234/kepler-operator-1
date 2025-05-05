@@ -29,6 +29,9 @@ type PowerMonitorKeplerConfigSpec struct {
 	// +kubebuilder:default="info"
 	// +optional
 	LogLevel string `json:"logLevel,omitempty"`
+
+	// +kubebuilder:default={"openshift-user-workload-monitoring", "monitoring"}
+	AllowedNamespaces []string `json:"allowedNamespaces,omitempty"`
 }
 
 type PowerMonitorKeplerSpec struct {
